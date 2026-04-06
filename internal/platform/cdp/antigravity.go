@@ -1,10 +1,14 @@
 package cdp
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	goRuntime "runtime"
+	"net/http"
 	"time"
 )
 
@@ -95,6 +99,137 @@ var getResponseTextScript = `(() => {
 	}
 	return null;
 })()`
+
+// ─── AutoAccept IPC layer ────────────────────────────────────────────────────
+// When AutoAccept Dashboard plugin is running it exposes a local HTTP server on
+// port 27182. LazyGravity uses this instead of opening a competing WebSocket to
+// the same CDP target (workbench.html), avoiding mutual kick-off.
+
+const ipcBase = "http://127.0.0.1:27182"
+
+var ipcHTTP = &http.Client{Timeout: 3 * time.Second}
+
+// IsAutoAcceptAvailable returns true when the AutoAccept IPC server is reachable
+// AND has an active workbench CDP session ready.
+func IsAutoAcceptAvailable() bool {
+	resp, err := ipcHTTP.Get(ipcBase + "/ping")
+	if err != nil {
+		return false
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		return false
+	}
+	var result struct {
+		OK             bool `json:"ok"`
+		WorkbenchReady bool `json:"workbenchReady"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return false
+	}
+	return result.OK && result.WorkbenchReady
+}
+
+// ipcInject sends a text injection request to AutoAccept.
+func ipcInject(text string) error {
+	body, _ := json.Marshal(map[string]string{"text": text})
+	resp, err := ipcHTTP.Post(ipcBase+"/inject", "application/json", bytes.NewReader(body))
+	if err != nil {
+		return fmt.Errorf("IPC inject request failed: %w", err)
+	}
+	defer resp.Body.Close()
+	var result struct {
+		OK    bool   `json:"ok"`
+		Error string `json:"error"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return fmt.Errorf("IPC inject response parse error: %w", err)
+	}
+	if !result.OK {
+		return fmt.Errorf("IPC inject error: %s", result.Error)
+	}
+	return nil
+}
+
+// InjectViaAutoAccept is the exported entry point for app.go to delegate text injection.
+func InjectViaAutoAccept(text string) error { return ipcInject(text) }
+
+// ipcEval runs a JS expression in the workbench context via AutoAccept.
+func ipcEval(expression string) (interface{}, error) {
+	body, _ := json.Marshal(map[string]string{"expression": expression})
+	resp, err := ipcHTTP.Post(ipcBase+"/eval", "application/json", bytes.NewReader(body))
+	if err != nil {
+		return nil, fmt.Errorf("IPC eval request failed: %w", err)
+	}
+	defer resp.Body.Close()
+	rawBody, _ := io.ReadAll(resp.Body)
+	var result struct {
+		OK    bool        `json:"ok"`
+		Value interface{} `json:"value"`
+		Error string      `json:"error"`
+	}
+	if err := json.Unmarshal(rawBody, &result); err != nil {
+		return nil, fmt.Errorf("IPC eval parse error: %w", err)
+	}
+	if !result.OK {
+		return nil, fmt.Errorf("IPC eval error: %s", result.Error)
+	}
+	return result.Value, nil
+}
+
+// MonitorResponseViaIPC polls generation status through AutoAccept's CDP connection.
+func MonitorResponseViaIPC(ctx context.Context, timeout time.Duration) (string, error) {
+	ticker := time.NewTicker(2 * time.Second)
+	defer ticker.Stop()
+	timeoutChan := time.After(timeout)
+	stopGoneCount := 0
+	errCount := 0
+
+	for {
+		select {
+		case <-ctx.Done():
+			return "", ctx.Err()
+		case <-timeoutChan:
+			return "", fmt.Errorf("timeout waiting for generation to complete")
+		case <-ticker.C:
+			val, err := ipcEval(checkGeneratingScript)
+			if err != nil {
+				log.Printf("[IPC] Eval checkGenerating error: %v", err)
+				errCount++
+				if errCount >= 3 {
+					return "", fmt.Errorf("IPC eval repeatedly failed: %w", err)
+				}
+				continue
+			}
+			errCount = 0
+
+			valMap, ok := val.(map[string]interface{})
+			isGenerating := false
+			if ok {
+				if g, ok2 := valMap["isGenerating"].(bool); ok2 {
+					isGenerating = g
+				}
+			}
+
+			if isGenerating {
+				stopGoneCount = 0
+				continue
+			}
+
+			stopGoneCount++
+			if stopGoneCount >= 3 {
+				textVal, err := ipcEval(getResponseTextScript)
+				if err != nil {
+					return "", fmt.Errorf("IPC get response text failed: %w", err)
+				}
+				if textStr, isStr := textVal.(string); isStr {
+					return textStr, nil
+				}
+				return "", fmt.Errorf("IPC response text not found or empty")
+			}
+		}
+	}
+}
 
 // InitCDP initializes the CDP system within a given context.
 func InitCDP(ctx context.Context) (*Client, error) {
@@ -281,6 +416,21 @@ func attachImageFiles(ctx context.Context, client *Client, filePaths []string) e
 }
 
 func InjectMessageWithImages(ctx context.Context, client *Client, text string, imagePaths []string) error {
+	// ── IPC path: delegate to AutoAccept to avoid CDP WebSocket competition ──
+	// Images are not yet supported over IPC; fall through to direct CDP for those.
+	if len(imagePaths) == 0 && IsAutoAcceptAvailable() {
+		if err := ipcInject(text); err == nil {
+			return nil
+		} else {
+			log.Printf("[IPC] inject failed, falling back to direct CDP: %v", err)
+		}
+	}
+	// ── CDP path (fallback) ──────────────────────────────────────────────────
+	return injectViaCDP(ctx, client, text, imagePaths)
+}
+
+// injectViaCDP is the original direct-CDP implementation, kept for fallback.
+func injectViaCDP(ctx context.Context, client *Client, text string, imagePaths []string) error {
 	val, err := Evaluate(ctx, client, injectMessageScript)
 	if err != nil {
 		return err

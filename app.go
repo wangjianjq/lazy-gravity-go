@@ -98,6 +98,41 @@ func (a *App) processQueue() {
 func (a *App) processSingleMessage(msg platform.PlatformMessage) {
 	var monitorStatus platform.PlatformSentMessage
 
+	attachments := msg.Attachments()
+
+	// ── IPC fast-path ─────────────────────────────────────────────────────────
+	// When AutoAccept Dashboard plugin is running, delegate inject+monitor to it.
+	// This avoids competing for the same CDP WebSocket (workbench.html target).
+	// Images are still handled via direct CDP (IPC image support not yet implemented).
+	if len(attachments) == 0 && cdp.IsAutoAcceptAvailable() {
+		a.emitEvent("bot-log", fmt.Sprintf("[IPC] Routing via AutoAccept for %s", msg.Author().DisplayName))
+		monitorStatus, _ = msg.Reply(platform.MessagePayload{Text: "Processing..."})
+
+		if err := cdp.InjectViaAutoAccept(msg.Content()); err != nil {
+			a.emitEvent("bot-error", fmt.Sprintf("IPC inject error: %v", err))
+			if monitorStatus != nil {
+				monitorStatus.Edit(platform.MessagePayload{Text: "Failed to inject: " + err.Error()})
+			}
+			return
+		}
+
+		resp, err := cdp.MonitorResponseViaIPC(a.ctx, 15*time.Minute)
+		if err != nil {
+			a.emitEvent("bot-error", fmt.Sprintf("IPC monitor error: %v", err))
+			if monitorStatus != nil {
+				monitorStatus.Edit(platform.MessagePayload{Text: "Error waiting for response: " + err.Error()})
+			}
+			return
+		}
+
+		if monitorStatus != nil {
+			monitorStatus.Delete()
+		}
+		a.sendReplyChunked(msg, resp)
+		return
+	}
+
+	// ── Direct CDP path (fallback / images) ───────────────────────────────────
 	// Execute CDP operations in an isolated closure to guarantee lock safety in case of panics
 	respText, cdpErr := func() (string, error) {
 		a.cdpMu.Lock()
@@ -115,7 +150,6 @@ func (a *App) processSingleMessage(msg platform.PlatformMessage) {
 		a.emitEvent("bot-log", fmt.Sprintf("[CDP] Injecting message from %s", msg.Author().DisplayName))
 		monitorStatus, _ = msg.Reply(platform.MessagePayload{Text: "Processing..."})
 
-		attachments := msg.Attachments()
 		err := cdp.InjectMessageWithImages(a.ctx, a.cdpClient, msg.Content(), attachments)
 
 		// Clean up temporal attachment files
@@ -153,7 +187,12 @@ func (a *App) processSingleMessage(msg platform.PlatformMessage) {
 		monitorStatus.Delete()
 	}
 
-	// Chunk large replies as TG max allows 4096.
+	a.sendReplyChunked(msg, respText)
+}
+
+// sendReplyChunked splits a long response into 3800-rune chunks and sends each.
+// It also triggers TTS on the final chunk.
+func (a *App) sendReplyChunked(msg platform.PlatformMessage, respText string) {
 	var lastSent platform.PlatformSentMessage
 	const maxLen = 3800
 	runes := []rune(respText)
