@@ -1,0 +1,26 @@
+# ── Build outputs ────────────────────────────────────────
+/build/bin/
+/Release/
+*.exe
+*.rar
+
+# ── Runtime data (contains encrypted secrets) ────────────
+/data/
+
+# ── Go ───────────────────────────────────────────────────
+vendor/
+
+# ── Wails ────────────────────────────────────────────────
+/frontend/dist/
+/frontend/node_modules/
+
+# ── Logs & temp artifacts ────────────────────────────────
+*.log
+/temp_cdp_test/
+
+# ── OS & editor ──────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
