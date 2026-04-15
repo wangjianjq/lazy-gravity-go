@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/tokyoweb3/lazy-gravity-go/internal/config"
-	"github.com/tokyoweb3/lazy-gravity-go/internal/database"
+	"github.com/wangjianjq/lazy-gravity-go/internal/config"
+	"github.com/wangjianjq/lazy-gravity-go/internal/database"
 )
 
 // Sandbox provides an isolated environment for testing

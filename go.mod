@@ -1,4 +1,4 @@
-module github.com/tokyoweb3/lazy-gravity-go
+module github.com/wangjianjq/lazy-gravity-go
 
 go 1.24.4
 

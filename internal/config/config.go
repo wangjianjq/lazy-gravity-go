@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/tokyoweb3/lazy-gravity-go/internal/crypto"
+	"github.com/wangjianjq/lazy-gravity-go/internal/crypto"
 )
 
 // Config is the in-memory and frontend-facing representation.

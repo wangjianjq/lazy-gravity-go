@@ -18,6 +18,17 @@ import (
 // Connects to Microsoft Edge's speech synthesis WebSocket endpoint,
 // sends SSML, and receives binary MP3 audio chunks.
 
+const (
+	// edgeTTSClientToken is the public TrustedClientToken for the Edge Read Aloud API.
+	// Obtain it by inspecting Edge browser network requests to speech.platform.bing.com,
+	// or refer to any open-source edge-tts implementation.
+	edgeTTSClientToken = "YOUR_TRUSTED_CLIENT_TOKEN"
+
+	// edgeTTSOrigin is the Chrome extension origin header accepted by the Edge TTS endpoint.
+	// Obtain it from the Edge Read Aloud extension's network requests.
+	edgeTTSOrigin = "chrome-extension://YOUR_EXTENSION_ID"
+)
+
 func uuid() string {
 	b := make([]byte, 16)
 	_, _ = rand.Read(b)
@@ -37,7 +48,7 @@ func generateSecMSGec() (string, string) {
 	nowInt := int64(now)
 	nowInt -= nowInt % 300 // Round down to nearest 5 minutes
 	ticks := nowInt * 10000000
-	strToHash := fmt.Sprintf("%d6A5AA1D4EAFF4E9FB37E23D68491D6F4", ticks)
+	strToHash := fmt.Sprintf("%d"+edgeTTSClientToken, ticks)
 	hash := sha256.Sum256([]byte(strToHash))
 	return strings.ToUpper(hex.EncodeToString(hash[:])), "1-143.0.3650.75"
 }
@@ -51,13 +62,13 @@ func Synthesize(ctx context.Context, text string, voice string, rate string, vol
 
 	// 1. Establish WebSocket Connection to Edge with timeout
 	secGec, secGecVer := generateSecMSGec()
-	url := fmt.Sprintf("wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4&ConnectionId=%s&Sec-MS-GEC=%s&Sec-MS-GEC-Version=%s", connectID(), secGec, secGecVer)
+	url := fmt.Sprintf("wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken=%s&ConnectionId=%s&Sec-MS-GEC=%s&Sec-MS-GEC-Version=%s", edgeTTSClientToken, connectID(), secGec, secGecVer)
 	dialer := websocket.Dialer{
 		HandshakeTimeout: 10 * time.Second,
 	}
 
 	headers := map[string][]string{
-		"Origin":     {"chrome-extension://jdiccldimpdaibmpdkjnbmckianbfold"},
+		"Origin":     {edgeTTSOrigin},
 		"User-Agent": {"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"},
 	}
 

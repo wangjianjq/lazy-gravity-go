@@ -3,7 +3,7 @@ package telegram
 import (
 	"testing"
 
-	"github.com/tokyoweb3/lazy-gravity-go/internal/config"
+	"github.com/wangjianjq/lazy-gravity-go/internal/config"
 )
 
 func TestIsAllowed(t *testing.T) {

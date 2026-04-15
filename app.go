@@ -13,11 +13,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/tokyoweb3/lazy-gravity-go/internal/config"
-	"github.com/tokyoweb3/lazy-gravity-go/internal/database"
-	"github.com/tokyoweb3/lazy-gravity-go/internal/platform"
-	"github.com/tokyoweb3/lazy-gravity-go/internal/platform/cdp"
-	"github.com/tokyoweb3/lazy-gravity-go/internal/platform/telegram"
+	"github.com/wangjianjq/lazy-gravity-go/internal/config"
+	"github.com/wangjianjq/lazy-gravity-go/internal/database"
+	"github.com/wangjianjq/lazy-gravity-go/internal/platform"
+	"github.com/wangjianjq/lazy-gravity-go/internal/platform/cdp"
+	"github.com/wangjianjq/lazy-gravity-go/internal/platform/telegram"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
@@ -286,7 +286,7 @@ func (a *App) StartBot() error {
 	// This guards against double-clicks or rapid API calls spawning duplicate
 	// adapters whose long-poll goroutines would then leak silently.
 	if !atomic.CompareAndSwapInt32(&a.botStarting, 0, 1) {
-		return fmt.Errorf("bot 正在启动中，请稍候 / Bot is already starting, please wait")
+		return fmt.Errorf("bot 正在启动中，请稍�?/ Bot is already starting, please wait")
 	}
 	defer atomic.StoreInt32(&a.botStarting, 0)
 
@@ -382,7 +382,7 @@ func friendlyBotError(err error) error {
 		strings.Contains(raw, "connection timed out"):
 		return fmt.Errorf(
 			"网络连接超时，无法连接到 Telegram。\n"+
-				"Network timeout — Cannot reach Telegram.\n\n"+
+				"Network timeout �?Cannot reach Telegram.\n\n"+
 				"可能原因：网络受限或未配置代理。\n"+
 				"Possible cause: network restriction or proxy not configured.\n\n"+
 				"原始错误 / Raw error: %v", err)
@@ -390,7 +390,7 @@ func friendlyBotError(err error) error {
 		strings.Contains(raw, "no such host") ||
 		strings.Contains(raw, "dial tcp"):
 		return fmt.Errorf(
-			"无法连接到 Telegram 服务器。\n"+
+			"无法连接�?Telegram 服务器。\n"+
 				"Cannot connect to Telegram servers.\n\n"+
 				"请检查您的网络连接。\n"+
 				"Please check your network connection.\n\n"+
@@ -406,6 +406,6 @@ func friendlyBotError(err error) error {
 				"Please update the token in Settings.\n\n"+
 				"原始错误 / Raw error: %v", err)
 	default:
-		return fmt.Errorf("启动 Telegram 适配器失败 / Failed to start Telegram adapter: %v", err)
+		return fmt.Errorf("启动 Telegram 适配器失�?/ Failed to start Telegram adapter: %v", err)
 	}
 }

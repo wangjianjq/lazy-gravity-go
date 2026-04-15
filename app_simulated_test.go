@@ -5,11 +5,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/tokyoweb3/lazy-gravity-go/internal/config"
-	"github.com/tokyoweb3/lazy-gravity-go/internal/crypto"
-	"github.com/tokyoweb3/lazy-gravity-go/internal/platform"
-	"github.com/tokyoweb3/lazy-gravity-go/internal/platform/mocks"
-	"github.com/tokyoweb3/lazy-gravity-go/internal/testutils"
+	"github.com/wangjianjq/lazy-gravity-go/internal/config"
+	"github.com/wangjianjq/lazy-gravity-go/internal/crypto"
+	"github.com/wangjianjq/lazy-gravity-go/internal/platform"
+	"github.com/wangjianjq/lazy-gravity-go/internal/platform/mocks"
+	"github.com/wangjianjq/lazy-gravity-go/internal/testutils"
 )
 
 func TestApp_SimulatedRun(t *testing.T) {

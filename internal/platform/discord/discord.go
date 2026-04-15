@@ -4,7 +4,7 @@ import (
 	"errors"
 	"log"
 
-	"github.com/tokyoweb3/lazy-gravity-go/internal/platform"
+	"github.com/wangjianjq/lazy-gravity-go/internal/platform"
 )
 
 // ensure interface implementations

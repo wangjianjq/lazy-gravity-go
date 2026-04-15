@@ -15,9 +15,9 @@ import (
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"github.com/tokyoweb3/lazy-gravity-go/internal/config"
-	"github.com/tokyoweb3/lazy-gravity-go/internal/platform"
-	"github.com/tokyoweb3/lazy-gravity-go/internal/tts"
+	"github.com/wangjianjq/lazy-gravity-go/internal/config"
+	"github.com/wangjianjq/lazy-gravity-go/internal/platform"
+	"github.com/wangjianjq/lazy-gravity-go/internal/tts"
 )
 
 // ensure interface implementations
@@ -190,7 +190,7 @@ func (c *telegramChannel) Send(payload platform.MessagePayload) (platform.Platfo
 }
 
 // EnqueueTTS explicitly queues a TTS voice synthesis job. Only call this for
-// final AI responses — not for status messages, errors, or individual chunks.
+// final AI responses �?not for status messages, errors, or individual chunks.
 func (a *TelegramAdapter) EnqueueTTS(chatID int64, text string, replyToMsgID int) bool {
 	select {
 	case a.ttsJobs <- ttsJob{api: a.bot, chatID: chatID, text: text, replyID: replyToMsgID}:
@@ -242,7 +242,7 @@ func (m *telegramSentMessage) ChannelID() string { return strconv.FormatInt(m.ch
 
 func (m *telegramSentMessage) Edit(payload platform.MessagePayload) (platform.PlatformSentMessage, error) {
 	editMsg := tgbotapi.NewEditMessageText(m.chatID, m.msgID, payload.Text)
-	// Plain text edit — no parsing mode
+	// Plain text edit �?no parsing mode
 	_, err := m.api.Send(editMsg)
 	if err != nil {
 		return nil, err
@@ -270,7 +270,7 @@ type telegramMessage struct {
 func wrapTelegramMessage(msg *tgbotapi.Message, adapter *TelegramAdapter) *telegramMessage {
 	var localFiles []string
 
-	// Check for photo attachment — use a timeout-limited client
+	// Check for photo attachment �?use a timeout-limited client
 	if len(msg.Photo) > 0 {
 		highestRes := msg.Photo[len(msg.Photo)-1]
 		fileURL, err := adapter.bot.GetFileDirectURL(highestRes.FileID)
@@ -365,7 +365,7 @@ func (m *telegramMessage) CreatedAt() time.Time              { return time.Unix(
 func (m *telegramMessage) Reply(payload platform.MessagePayload) (platform.PlatformSentMessage, error) {
 	replyMsg := tgbotapi.NewMessage(m.cChat.chatID, payload.Text)
 	replyMsg.ReplyToMessageID = m.msg.MessageID
-	// No ParseMode → plain text, always accepted by Telegram
+	// No ParseMode �?plain text, always accepted by Telegram
 	sent, err := m.adapter.bot.Send(replyMsg)
 	if err != nil {
 		return nil, err

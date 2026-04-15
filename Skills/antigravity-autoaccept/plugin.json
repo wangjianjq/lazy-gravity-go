@@ -15,7 +15,7 @@
     "ipc_port": 27182,
     "cdp_ports": [9222, 9333],
     "go_project": "d:/AI/work/GO",
-    "go_module": "github.com/tokyoweb3/lazy-gravity-go",
+    "go_module": "github.com/YOUR-ORG/YOUR-REPO",
     "last_verified": "2026-04-15"
   }
 }
