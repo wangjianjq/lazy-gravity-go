@@ -19,14 +19,16 @@ import (
 // sends SSML, and receives binary MP3 audio chunks.
 
 const (
-	// edgeTTSClientToken is the public TrustedClientToken for the Edge Read Aloud API.
-	// Obtain it by inspecting Edge browser network requests to speech.platform.bing.com,
-	// or refer to any open-source edge-tts implementation.
-	edgeTTSClientToken = "YOUR_TRUSTED_CLIENT_TOKEN"
+	// edgeTTSClientToken is Microsoft Edge's shared public TrustedClientToken for the
+	// Read Aloud / speech synthesis API. This is NOT a personal secret — it is the same
+	// value for all Edge users worldwide and is openly documented in every edge-tts
+	// open-source implementation (e.g. github.com/rany2/edge-tts).
+	edgeTTSClientToken = "6A5AA1D4EAFF4E9FB37E23D68491D6F4"
 
-	// edgeTTSOrigin is the Chrome extension origin header accepted by the Edge TTS endpoint.
-	// Obtain it from the Edge Read Aloud extension's network requests.
-	edgeTTSOrigin = "chrome-extension://YOUR_EXTENSION_ID"
+	// edgeTTSOrigin is the Chrome extension origin header for the Edge Read Aloud endpoint.
+	// Extension ID jdiccldimpdaibmpdkjnbmckianbfold is the "Read Aloud" extension —
+	// a fixed, globally-shared identifier confirmed present in msedge.dll.
+	edgeTTSOrigin = "chrome-extension://jdiccldimpdaibmpdkjnbmckianbfold"
 )
 
 func uuid() string {

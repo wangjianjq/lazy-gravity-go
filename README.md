@@ -33,7 +33,7 @@ LazyGravity 是一款基于 [Wails](https://wails.io/) 的桌面应用，通过 
 - 📨 **Telegram → IDE** — 接收 Telegram 消息并注入 Antigravity IDE 对话框
 - 🖼️ **图片支持** — 转发照片附件到 IDE（走直连 CDP 路径，IPC 路径暂不支持图片）
 - 🔗 **双模式注入** — 优先 IPC 协作模式（兼容 AutoAccept 插件）；无插件时自动 fallback 到 CDP 直连 Chrome/Chromium
-- 🔊 **TTS 语音** — 可选的 Edge TTS 文字转语音播报（需配置，见下方）
+- 🔊 **TTS 语音** — 可选的 Edge TTS 文字转语音播报（内置，开箱即用）
 - 🛡️ **系统托盘** — 后台运行，Windows/macOS 托盘图标
 - 🌐 **中英双语** — 界面支持中文/英文切换
 
@@ -77,27 +77,11 @@ wails build
 
 配置加密存储于 `%APPDATA%\LazyGravity\_config.json`（Windows）。
 
-## TTS 配置
+## TTS 说明
 
-TTS 功能使用 Microsoft Edge Read Aloud 协议，所需凭据**未包含在仓库中**，需手动填写。
+TTS 功能使用 Microsoft Edge Read Aloud 协议，所需凭据已**内置于程序中，无需任何配置**，开箱即用。
 
-1. 打开 `internal/tts/tts.go`，找到文件顶部的常量块：
-
-```go
-const (
-    // 通过抓包 Edge 浏览器访问 speech.platform.bing.com 的请求获取
-    // 或参考任意开源 edge-tts 项目
-    edgeTTSClientToken = "YOUR_TRUSTED_CLIENT_TOKEN"
-
-    // 从 Edge Read Aloud 插件的网络请求 Origin 头获取
-    edgeTTSOrigin = "chrome-extension://YOUR_EXTENSION_ID"
-)
-```
-
-2. 将 `YOUR_TRUSTED_CLIENT_TOKEN` 和 `YOUR_EXTENSION_ID` 替换为真实值
-3. **不要提交**这两个值到 Git
-
-> 💡 这些值可从任意开源 [edge-tts](https://github.com/rany2/edge-tts) 项目获取，并非私密密钥，仅为保持代码清洁而使用占位符。
+> 💡 这些凭据是微软 Edge 浏览器的全球共享公开常量（并非个人密钥），与所有开源 [edge-tts](https://github.com/rany2/edge-tts) 实现一致。确保设备已安装 Microsoft Edge 并能访问 `speech.platform.bing.com` 即可使用 TTS。
 
 ## 项目结构
 
@@ -134,7 +118,7 @@ lazy-gravity-go/
 - 📨 **Telegram → IDE** — Receive Telegram messages and inject them into Antigravity IDE
 - 🖼️ **Image support** — Forward photo attachments via direct CDP path
 - 🔗 **Dual-mode injection** — IPC mode (compatible with AutoAccept plugin) preferred; auto-fallback to direct CDP WebSocket control of Chrome/Chromium when plugin is unavailable
-- 🔊 **TTS** — Optional text-to-speech via Edge TTS (requires configuration)
+- 🔊 **TTS** — Optional text-to-speech via Edge TTS (built-in, no configuration needed)
 - 🛡️ **System tray** — Runs as a background tray application on Windows/macOS
 
 ### Quick Start
@@ -148,18 +132,9 @@ cd lazy-gravity-go
 wails build   # Output: build/bin/lazygravity.exe
 ```
 
-### TTS Setup
+### TTS
 
-Open `internal/tts/tts.go` and fill in the two constants:
-
-```go
-const (
-    edgeTTSClientToken = "YOUR_TRUSTED_CLIENT_TOKEN"  // from Edge network requests
-    edgeTTSOrigin      = "chrome-extension://YOUR_EXTENSION_ID"
-)
-```
-
-See any open-source [edge-tts](https://github.com/rany2/edge-tts) project for the actual values. **Do not commit these values.**
+TTS works out of the box — no configuration needed. The required Microsoft Edge TTS credentials are bundled globally (same public constants used by all [edge-tts](https://github.com/rany2/edge-tts) implementations). Just ensure Microsoft Edge is installed and `speech.platform.bing.com` is reachable.
 
 ### IPC Integration
 
