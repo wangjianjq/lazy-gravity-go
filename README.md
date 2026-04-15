@@ -12,8 +12,9 @@
 - [功能](#功能)
 - [快速开始](#快速开始)
 - [配置说明](#配置说明)
-- [TTS 配置](#tts-配置)
+- [TTS 说明](#tts-说明)
 - [项目结构](#项目结构)
+- [致谢](#致谢)
 - [English](#english)
 
 ---
@@ -118,6 +119,12 @@ lazy-gravity-go/
 └── build/bin/                    # 编译产物
 ```
 
+## 致谢
+
+本项目的创意和核心思路来源于 **[tokyoweb3/LazyGravity](https://github.com/tokyoweb3/LazyGravity)**。
+
+感谢原作者 [@tokyoweb3](https://github.com/tokyoweb3) 和所有贡献者提供了这个将 Telegram Bot 与 Antigravity IDE 连接的精彩创意。本仓库在原始概念基础上进行了重构与扩展，增加了 IPC 协作模式、双语界面、系统托盘、CDP 双模式注入等新功能。
+
 ---
 
 ## English
@@ -151,19 +158,14 @@ TTS works out of the box — no configuration needed. The required Microsoft Edg
 
 See [`Skills/antigravity-autoaccept/`](Skills/antigravity-autoaccept/) for the complete guide on integrating with the AutoAccept VS Code extension.
 
+### Acknowledgements
+
+This project is inspired by **[tokyoweb3/LazyGravity](https://github.com/tokyoweb3/LazyGravity)**.
+
+Special thanks to [@tokyoweb3](https://github.com/tokyoweb3) and all contributors for the original idea of bridging Telegram with Antigravity IDE. This repository builds upon that concept with additional features including IPC delegation, bilingual UI, system tray support, and dual-mode CDP/IPC injection.
+
 ---
 
 ## License
 
 MIT — see [Skills/antigravity-autoaccept/LICENSE](Skills/antigravity-autoaccept/LICENSE)
-
----
-
-## 致谢 / Acknowledgements
-
-本项目的创意和核心思路来源于 **[tokyoweb3/LazyGravity](https://github.com/tokyoweb3/LazyGravity)**。
-
-感谢原作者 [@tokyoweb3](https://github.com/tokyoweb3) 和所有贡献者提供了这个将 Telegram Bot 与 Antigravity IDE 连接的精彩创意。本仓库在原始概念的基础上进行了重构和扩展，加入了 IPC 协作模式、双语界面、系统托盘等新功能。
-
-> This project is inspired by **[tokyoweb3/LazyGravity](https://github.com/tokyoweb3/LazyGravity)**.  
-> Special thanks to [@tokyoweb3](https://github.com/tokyoweb3) and all contributors for the original idea of bridging Telegram with Antigravity IDE. This repository builds upon that concept with additional features including IPC delegation, bilingual UI, and system tray support.
