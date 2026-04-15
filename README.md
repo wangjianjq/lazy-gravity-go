@@ -75,7 +75,18 @@ wails build
 | **工作目录** | 本地存储对话历史的目录 |
 | **语音设置** | TTS 语音、语速、音量 |
 
-配置加密存储于 `%APPDATA%\LazyGravity\_config.json`（Windows）。
+配置加密存储于程序同级目录下的 `data/config.json`（Windows）。
+
+### 🔒 安全说明
+
+| 字段 | 存储方式 | 说明 |
+|------|---------|------|
+| Bot Token | **DPAPI 加密** | 绑定到当前电脑和 Windows 账号，拷走无法解密 |
+| Chat ID | 明文数字 | 无 Token 无法利用，风险极低 |
+| 工作目录路径 | 明文 | 本地路径信息 |
+
+> ⚠️ 即使有人拷走整个 `data/` 目录，Bot Token 在其他电脑上**无法解密和使用**（Windows DPAPI 机制）。启动后会进入重新配置向导。
+
 
 ## TTS 说明
 
