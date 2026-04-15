@@ -107,7 +107,14 @@ var getResponseTextScript = `(() => {
 
 const ipcBase = "http://127.0.0.1:27182"
 
+// ipcHTTP is used for fast health checks (/ping) and short-lived operations (/inject).
+// A 3-second timeout is sufficient because these calls should complete instantly.
 var ipcHTTP = &http.Client{Timeout: 3 * time.Second}
+
+// evalHTTP is used exclusively for /eval calls.
+// AI generation can take tens of seconds; a longer timeout prevents spurious failures.
+// See Skill SKILL.md 坑#1: never use ipcHTTP for /eval.
+var evalHTTP = &http.Client{Timeout: 35 * time.Second}
 
 // IsAutoAcceptAvailable returns true when the AutoAccept IPC server is reachable
 // AND has an active workbench CDP session ready.
@@ -155,9 +162,11 @@ func ipcInject(text string) error {
 func InjectViaAutoAccept(text string) error { return ipcInject(text) }
 
 // ipcEval runs a JS expression in the workbench context via AutoAccept.
+// Uses evalHTTP (35s timeout) because AI generation can keep the call pending
+// for many seconds. Do NOT use ipcHTTP here — see Skill 坑#1.
 func ipcEval(expression string) (interface{}, error) {
 	body, _ := json.Marshal(map[string]string{"expression": expression})
-	resp, err := ipcHTTP.Post(ipcBase+"/eval", "application/json", bytes.NewReader(body))
+	resp, err := evalHTTP.Post(ipcBase+"/eval", "application/json", bytes.NewReader(body))
 	if err != nil {
 		return nil, fmt.Errorf("IPC eval request failed: %w", err)
 	}

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -54,8 +55,24 @@ func NewTelegramAdapter(token string) *TelegramAdapter {
 }
 
 func (a *TelegramAdapter) Start() error {
+	// Custom HTTP client: 60 s TLS handshake timeout (default is 10 s),
+	// automatic proxy from HTTPS_PROXY / HTTP_PROXY environment variables.
+	httpClient := &http.Client{
+		Timeout: 120 * time.Second,
+		Transport: &http.Transport{
+			Proxy: http.ProxyFromEnvironment,
+			DialContext: (&net.Dialer{
+				Timeout:   60 * time.Second,
+				KeepAlive: 30 * time.Second,
+			}).DialContext,
+			TLSHandshakeTimeout:   60 * time.Second,
+			ResponseHeaderTimeout: 60 * time.Second,
+			ExpectContinueTimeout: 1 * time.Second,
+		},
+	}
+
 	var err error
-	a.bot, err = tgbotapi.NewBotAPI(a.token)
+	a.bot, err = tgbotapi.NewBotAPIWithClient(a.token, tgbotapi.APIEndpoint, httpClient)
 	if err != nil {
 		return err
 	}
@@ -258,7 +275,10 @@ func wrapTelegramMessage(msg *tgbotapi.Message, adapter *TelegramAdapter) *teleg
 		highestRes := msg.Photo[len(msg.Photo)-1]
 		fileURL, err := adapter.bot.GetFileDirectURL(highestRes.FileID)
 		if err == nil && fileURL != "" {
-			dlClient := &http.Client{Timeout: 30 * time.Second}
+			dlClient := &http.Client{
+				Timeout:   30 * time.Second,
+				Transport: &http.Transport{Proxy: http.ProxyFromEnvironment},
+			}
 			resp, err := dlClient.Get(fileURL)
 			if err == nil {
 				defer resp.Body.Close()

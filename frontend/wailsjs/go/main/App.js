@@ -14,6 +14,10 @@ export function HasConfig() {
   return window['go']['main']['App']['HasConfig']();
 }
 
+export function HideToTray() {
+  return window['go']['main']['App']['HideToTray']();
+}
+
 export function IsBotRunning() {
   return window['go']['main']['App']['IsBotRunning']();
 }

@@ -3,6 +3,7 @@ module github.com/tokyoweb3/lazy-gravity-go
 go 1.24.4
 
 require (
+	github.com/energye/systray v1.0.3
 	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1
 	github.com/gofrs/flock v0.13.0
 	github.com/gorilla/websocket v1.5.3

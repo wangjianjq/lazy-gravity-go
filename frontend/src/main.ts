@@ -24,6 +24,7 @@ declare global {
                     StartBot(): Promise<void>;
                     StopBot(): Promise<void>;
                     IsBotRunning(): Promise<boolean>;
+                    HideToTray(): Promise<void>;
                 }
             }
         };
@@ -161,6 +162,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     (document.getElementById('input-language') as HTMLSelectElement).value = osLang;
 
     const App = window.go.main.App;
+
+    // ── Minimize to tray ───────────────────────────────────────────────────
+    // Hides window completely (removed from taskbar); tray icon stays visible.
+    document.getElementById('btn-minimize')?.addEventListener('click', () => {
+        App.HideToTray();
+    });
 
     // ── View references ──────────────────────────────────────────────────────
     const viewSetup     = document.getElementById('view-setup')     as HTMLDivElement;

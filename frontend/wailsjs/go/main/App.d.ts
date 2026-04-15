@@ -8,6 +8,8 @@ export function GetConfig():Promise<config.Config>;
 
 export function HasConfig():Promise<boolean>;
 
+export function HideToTray():Promise<void>;
+
 export function IsBotRunning():Promise<boolean>;
 
 export function SaveConfig(arg1:config.Config):Promise<void>;

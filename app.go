@@ -8,7 +8,9 @@ import (
 	"path/filepath"
 	oRuntime "runtime"
 	"strconv"
+	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/tokyoweb3/lazy-gravity-go/internal/config"
@@ -27,6 +29,9 @@ type App struct {
 	cdpMu     sync.Mutex // protects cdpClient across concurrent workers
 	msgQueue  chan platform.PlatformMessage
 	adapterMu sync.RWMutex // protects adapter from concurrent access
+	// botStarting is an atomic flag (0 = idle, 1 = in-progress) that prevents
+	// concurrent StartBot calls from spawning duplicate adapters.
+	botStarting int32
 	// Internal flags for testing
 	skipIDELaunch bool
 	skipEvents    bool
@@ -60,6 +65,9 @@ func (a *App) startup(ctx context.Context) {
 		_ = config.Load()
 	}
 
+	// Initialize system tray (Windows: notification area icon)
+	a.initTray()
+
 	// Open Antigravity IDE with remote debugging port automatically on app startup.
 	if !a.skipIDELaunch {
 		if oRuntime.GOOS == "windows" {
@@ -81,8 +89,14 @@ func (a *App) startup(ctx context.Context) {
 	for i := 0; i < numWorkers; i++ {
 		go a.processQueue()
 	}
-}
 
+	// Antigravity IDE launches immediately after startup and typically grabs
+	// focus. Wait until it is visible, then pull LazyGravity back to the front.
+	go func() {
+		time.Sleep(2 * time.Second)
+		a.bringToFront()
+	}()
+}
 
 func (a *App) processQueue() {
 	for {
@@ -232,6 +246,7 @@ func (a *App) sendReplyChunked(msg platform.PlatformMessage, respText string) {
 
 func (a *App) shutdown(ctx context.Context) {
 	a.StopBot()
+	a.quitTray()
 }
 
 // emitEvent is a helper to safely call Wails EventsEmit
@@ -267,14 +282,24 @@ func (a *App) ClearConfig() error {
 }
 
 func (a *App) StartBot() error {
-	if a.adapter != nil {
-		// Mock adapter might already be set, but we still need to initialize DB
+	// Prevent concurrent StartBot calls: only one may proceed at a time.
+	// This guards against double-clicks or rapid API calls spawning duplicate
+	// adapters whose long-poll goroutines would then leak silently.
+	if !atomic.CompareAndSwapInt32(&a.botStarting, 0, 1) {
+		return fmt.Errorf("bot 正在启动中，请稍候 / Bot is already starting, please wait")
 	}
+	defer atomic.StoreInt32(&a.botStarting, 0)
 
 	cfg := config.GetConfig()
-	
-	// Only validate token if we aren't using a pre-set (mock) adapter
-	if a.adapter == nil && cfg.TelegramToken == "" {
+
+	// Read current adapter state under lock. All subsequent logic uses
+	// existingAdapter so we never access a.adapter without the mutex.
+	a.adapterMu.RLock()
+	existingAdapter := a.adapter
+	a.adapterMu.RUnlock()
+
+	// Only validate token if no pre-set (mock) adapter is in place.
+	if existingAdapter == nil && cfg.TelegramToken == "" {
 		return fmt.Errorf("no telegram token configured")
 	}
 
@@ -283,17 +308,19 @@ func (a *App) StartBot() error {
 		dir, _ := os.UserConfigDir()
 		ws = filepath.Join(dir, "LazyGravity", "Workspace")
 	}
-	err := database.InitDB(ws)
-	if err != nil {
+	if err := database.InitDB(ws); err != nil {
 		return fmt.Errorf("database init error: %v", err)
 	}
 
-	a.adapterMu.Lock()
-	if a.adapter == nil {
-		a.adapter = telegram.NewTelegramAdapter(cfg.TelegramToken)
+	// Build a new adapter only if none is pre-set (e.g. a mock for testing).
+	// Keep it in a local variable so IsBotRunning() stays false until
+	// Start() actually succeeds and we publish it below.
+	var adapter platform.Adapter
+	if existingAdapter == nil {
+		adapter = telegram.NewTelegramAdapter(cfg.TelegramToken)
+	} else {
+		adapter = existingAdapter
 	}
-	adapter := a.adapter
-	a.adapterMu.Unlock()
 
 	adapter.OnMessage(func(msg platform.PlatformMessage) {
 		logMsg := fmt.Sprintf("[%s]: %s", msg.Author().DisplayName, msg.Content())
@@ -310,13 +337,13 @@ func (a *App) StartBot() error {
 		}
 	})
 
+	// Start() blocks for up to ~120 s on TLS. We do NOT publish adapter until
+	// this returns successfully, so IsBotRunning() remains false during the wait.
 	if err := adapter.Start(); err != nil {
-		a.adapterMu.Lock()
-		a.adapter = nil
-		a.adapterMu.Unlock()
-		return fmt.Errorf("failed to start Telegram adapter: %v", err)
+		return friendlyBotError(err)
 	}
 
+	// Publish only after successful start.
 	a.adapterMu.Lock()
 	a.adapter = adapter
 	a.adapterMu.Unlock()
@@ -342,4 +369,43 @@ func (a *App) IsBotRunning() bool {
 	a.adapterMu.RLock()
 	defer a.adapterMu.RUnlock()
 	return a.adapter != nil
+}
+
+// friendlyBotError converts low-level network / auth errors into bilingual
+// user-readable messages without losing the raw cause.
+func friendlyBotError(err error) error {
+	raw := err.Error()
+	switch {
+	case strings.Contains(raw, "TLS handshake") ||
+		strings.Contains(raw, "timeout") ||
+		strings.Contains(raw, "deadline exceeded") ||
+		strings.Contains(raw, "connection timed out"):
+		return fmt.Errorf(
+			"网络连接超时，无法连接到 Telegram。\n"+
+				"Network timeout — Cannot reach Telegram.\n\n"+
+				"可能原因：网络受限或未配置代理。\n"+
+				"Possible cause: network restriction or proxy not configured.\n\n"+
+				"原始错误 / Raw error: %v", err)
+	case strings.Contains(raw, "connection refused") ||
+		strings.Contains(raw, "no such host") ||
+		strings.Contains(raw, "dial tcp"):
+		return fmt.Errorf(
+			"无法连接到 Telegram 服务器。\n"+
+				"Cannot connect to Telegram servers.\n\n"+
+				"请检查您的网络连接。\n"+
+				"Please check your network connection.\n\n"+
+				"原始错误 / Raw error: %v", err)
+	case strings.Contains(raw, "Unauthorized") ||
+		strings.Contains(raw, "401") ||
+		strings.Contains(raw, "invalid token") ||
+		strings.Contains(raw, "Not Found"):
+		return fmt.Errorf(
+			"Bot Token 无效或已过期。\n"+
+				"Bot token is invalid or expired.\n\n"+
+				"请在\"设置\"页面更新 Token。\n"+
+				"Please update the token in Settings.\n\n"+
+				"原始错误 / Raw error: %v", err)
+	default:
+		return fmt.Errorf("启动 Telegram 适配器失败 / Failed to start Telegram adapter: %v", err)
+	}
 }

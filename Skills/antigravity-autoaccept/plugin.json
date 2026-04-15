@@ -1,0 +1,21 @@
+{
+  "name": "antigravity-autoaccept",
+  "version": "2.0.0",
+  "description": "IPC integration skill for AntiGravity AutoAccept VS Code extension (yazanbaker.antigravity-autoaccept). Eliminates CDP WebSocket contention between LazyGravity Go bot and AutoAccept by exposing a local HTTP bridge on :27182. v2.0.0 adds 8 verified gotchas and 5 lessons learned from production experience.",
+  "author": "WJ",
+  "skills": {
+    "antigravity-autoaccept": {
+      "path": "SKILL.md",
+      "description": "Guides setup of the IPC HTTP server inside the AutoAccept extension and the corresponding Go client, resolving CDP port contention on :9222/:9333 when LazyGravity and AutoAccept run simultaneously. Includes verified gotchas (ipcEval timeout bug, startup race, double-check layer) and lessons learned."
+    }
+  },
+  "metadata": {
+    "plugin_source": "https://github.com/yazanbaker94/AntiGravity-AutoAccept",
+    "tested_version": "3.13.8-universal",
+    "ipc_port": 27182,
+    "cdp_ports": [9222, 9333],
+    "go_project": "d:/AI/work/GO",
+    "go_module": "github.com/tokyoweb3/lazy-gravity-go",
+    "last_verified": "2026-04-15"
+  }
+}
