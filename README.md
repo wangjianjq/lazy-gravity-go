@@ -168,4 +168,4 @@ Special thanks to [@tokyoweb3](https://github.com/tokyoweb3) and all contributor
 
 ## License
 
-MIT — see [Skills/antigravity-autoaccept/LICENSE](Skills/antigravity-autoaccept/LICENSE)
+MIT — see [LICENSE](LICENSE)
