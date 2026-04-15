@@ -2,7 +2,7 @@
 
 **中文** | [English](#english)
 
-> 将 Telegram 消息桥接到 Antigravity IDE 的 AI 编程机器人，支持图片发送、TTS语音播报和 AutoAccept IPC 协作。
+> 将 Telegram 消息桥接到 Antigravity IDE 的 AI 编程机器人，通过 CDP 直接控制 Chromium，同时兼容 AntiGravity AutoAccept 插件的 IPC 协作模式。
 
 ---
 
@@ -22,13 +22,17 @@
 
 LazyGravity 是一款基于 [Wails](https://wails.io/) 的桌面应用，通过 Telegram Bot 接收消息，利用 Chrome DevTools Protocol (CDP) 将消息注入到 [Antigravity IDE](https://antigravity.dev) 的 AI 对话框，实现远程控制 AI 编程助手。
 
-配合 [AntiGravity AutoAccept](https://github.com/yazanbaker94/AntiGravity-AutoAccept) 插件，通过 IPC HTTP 桥接消除 CDP WebSocket 竞争，详见 [`Skills/antigravity-autoaccept/`](Skills/antigravity-autoaccept/)。
+支持两种注入模式，自动切换：
+- **CDP 直连模式** — 直接通过 WebSocket 控制 Chromium（支持图片上传）
+- **IPC 协作模式** — 兼容 [AntiGravity AutoAccept](https://github.com/yazanbaker94/AntiGravity-AutoAccept) 插件，通过本地 HTTP 桥接委托操作，消除双方争抢同一 CDP WebSocket 连接的问题
+
+详见 [`Skills/antigravity-autoaccept/`](Skills/antigravity-autoaccept/)。
 
 ## 功能
 
 - 📨 **Telegram → IDE** — 接收 Telegram 消息并注入 Antigravity IDE 对话框
-- 🖼️ **图片支持** — 转发照片附件到 IDE（自动 fallback 到直连 CDP）
-- 🔗 **IPC 委托** — 与 AutoAccept 插件协作，单一 WebSocket 持有者，消除竞争
+- 🖼️ **图片支持** — 转发照片附件到 IDE（走直连 CDP 路径，IPC 路径暂不支持图片）
+- 🔗 **双模式注入** — 优先 IPC 协作模式（兼容 AutoAccept 插件）；无插件时自动 fallback 到 CDP 直连 Chrome/Chromium
 - 🔊 **TTS 语音** — 可选的 Edge TTS 文字转语音播报（需配置，见下方）
 - 🛡️ **系统托盘** — 后台运行，Windows/macOS 托盘图标
 - 🌐 **中英双语** — 界面支持中文/英文切换
@@ -128,8 +132,8 @@ lazy-gravity-go/
 ### Features
 
 - 📨 **Telegram → IDE** — Receive Telegram messages and inject them into Antigravity IDE
-- 🖼️ **Image support** — Forward photo attachments directly to the IDE
-- 🔗 **IPC delegation** — Works with [AutoAccept](https://github.com/yazanbaker94/AntiGravity-AutoAccept) extension via HTTP bridge to eliminate CDP WebSocket conflicts
+- 🖼️ **Image support** — Forward photo attachments via direct CDP path
+- 🔗 **Dual-mode injection** — IPC mode (compatible with AutoAccept plugin) preferred; auto-fallback to direct CDP WebSocket control of Chrome/Chromium when plugin is unavailable
 - 🔊 **TTS** — Optional text-to-speech via Edge TTS (requires configuration)
 - 🛡️ **System tray** — Runs as a background tray application on Windows/macOS
 
